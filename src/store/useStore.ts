@@ -185,7 +185,9 @@ const useStore = create<AppStore>((set, get) => ({
   sidebar: {
     searchQuery: '',
     selectedCategory: null,
-    expandedGroups: new Set<string>(),
+    expandedGroups: new Set<string>([
+      'ore', 'ingot', 'component', 'extraction', 'smelting', 'production',
+    ]),
     selectedTier: null,
   },
 

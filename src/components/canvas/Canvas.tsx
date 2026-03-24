@@ -147,7 +147,7 @@ export function Canvas() {
   );
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full">
+    <div ref={reactFlowWrapper} className="w-full h-full" style={{ height: '100%' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -172,14 +172,13 @@ export function Canvas() {
           },
         }}
         fitView
-        proOptions={{ hideAttribution: true }}
         className="bg-sf-bg"
       >
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}
-          size={1}
-          color="#1a2744"
+          size={1.5}
+          color="#2a3f5f"
         />
         <MiniMap
           nodeStrokeColor="#2a3f5f"
@@ -191,6 +190,14 @@ export function Canvas() {
         />
         <Controls />
       </ReactFlow>
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <p className="text-sf-text-dim text-lg mb-2">Drag items from the sidebar to start building</p>
+            <p className="text-sf-text-muted text-sm">Connect nodes to create production chains</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
