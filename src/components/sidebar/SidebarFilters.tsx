@@ -17,14 +17,10 @@ const CATEGORIES: { value: string; label: string }[] = [
 const TIERS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 export function SidebarFilters() {
-  const { selectedCategory, selectedTier, setSelectedCategory, setSelectedTier } = useStore(
-    (s) => ({
-      selectedCategory: s.sidebar.selectedCategory,
-      selectedTier: s.sidebar.selectedTier,
-      setSelectedCategory: s.setSelectedCategory,
-      setSelectedTier: s.setSelectedTier,
-    })
-  );
+  const selectedCategory = useStore((s) => s.sidebar.selectedCategory);
+  const selectedTier = useStore((s) => s.sidebar.selectedTier);
+  const setSelectedCategory = useStore((s) => s.setSelectedCategory);
+  const setSelectedTier = useStore((s) => s.setSelectedTier);
 
   const effectiveCategory = selectedCategory ?? 'all';
 

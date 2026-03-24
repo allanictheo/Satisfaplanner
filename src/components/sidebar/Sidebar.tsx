@@ -4,10 +4,8 @@ import { SidebarItemList } from './SidebarItemList';
 import { SidebarFilters } from './SidebarFilters';
 
 export function Sidebar() {
-  const { searchQuery, setSearchQuery } = useStore((s) => ({
-    searchQuery: s.sidebar.searchQuery,
-    setSearchQuery: s.setSearchQuery,
-  }));
+  const searchQuery = useStore((s) => s.sidebar.searchQuery);
+  const setSearchQuery = useStore((s) => s.setSearchQuery);
 
   return (
     <div className="w-80 min-w-80 h-full bg-sf-sidebar border-r border-sf-border flex flex-col">

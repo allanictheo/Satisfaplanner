@@ -137,9 +137,6 @@ function RawResources({ results }: { results: OptimizationResult }) {
   // Collect raw inputs: items consumed but not produced by any node
   // We derive this from connections whose fromNode is not a building in the result set
   const producedItems = new Set<string>();
-  for (const _node of results.nodes) {
-    // Each node produces items -- we approximate from connections
-  }
   for (const conn of results.connections) {
     if (results.nodes.some((n) => `${n.buildingId}-${n.recipeId}` === conn.fromNode)) {
       producedItems.add(conn.itemId);
@@ -246,19 +243,11 @@ export function OptimizePanel() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const {
-    optimization,
-    setOptimizationTarget,
-    runOptimization,
-    clearOptimization,
-    nodes,
-  } = useStore((s) => ({
-    optimization: s.optimization,
-    setOptimizationTarget: s.setOptimizationTarget,
-    runOptimization: s.runOptimization,
-    clearOptimization: s.clearOptimization,
-    nodes: s.nodes,
-  }));
+  const optimization = useStore((s) => s.optimization);
+  const setOptimizationTarget = useStore((s) => s.setOptimizationTarget);
+  const runOptimization = useStore((s) => s.runOptimization);
+  const clearOptimization = useStore((s) => s.clearOptimization);
+  const nodes = useStore((s) => s.nodes);
 
   const { targetItemId, targetRate, results, isOptimizing } = optimization;
 

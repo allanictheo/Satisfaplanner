@@ -85,15 +85,11 @@ function buildingToEntry(b: Building): SidebarEntry {
 }
 
 export function SidebarItemList() {
-  const { searchQuery, selectedCategory, selectedTier, expandedGroups, toggleGroup } = useStore(
-    (s) => ({
-      searchQuery: s.sidebar.searchQuery,
-      selectedCategory: s.sidebar.selectedCategory,
-      selectedTier: s.sidebar.selectedTier,
-      expandedGroups: s.sidebar.expandedGroups,
-      toggleGroup: s.toggleGroup,
-    })
-  );
+  const searchQuery = useStore((s) => s.sidebar.searchQuery);
+  const selectedCategory = useStore((s) => s.sidebar.selectedCategory);
+  const selectedTier = useStore((s) => s.sidebar.selectedTier);
+  const expandedGroups = useStore((s) => s.sidebar.expandedGroups);
+  const toggleGroup = useStore((s) => s.toggleGroup);
 
   const grouped = useMemo(() => {
     const allEntries: SidebarEntry[] = [];
