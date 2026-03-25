@@ -10,7 +10,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 import type { FactoryNodeData, ConnectionData } from '../types';
-import { getBeltById } from '../data';
+import { getBeltById, getBuildingById, getItemById, getRecipeById } from '../data';
 import {
   calculateNodeRates,
   determineNodeStatus,
@@ -74,6 +74,7 @@ interface AppStore {
   setOptimizationTarget: (itemId: string | null, rate?: number) => void;
   runOptimization: () => void;
   clearOptimization: () => void;
+  applyOptimizationToCanvas: () => void;
 
   // Simulation
   simulateFlows: () => void;
@@ -344,6 +345,132 @@ const useStore = create<AppStore>((set, get) => ({
         data: { ...edge.data!, isOptimized: false },
       })),
     });
+  },
+
+  applyOptimizationToCanvas: () => {
+    const { optimization } = get();
+    if (!optimization.results) return;
+
+    const results = optimization.results;
+    const newNodes: Node<FactoryNodeData>[] = [];
+    const newEdges: Edge<ConnectionData>[] = [];
+    const nodeIdMap = new Map<string, string>(); // recipeId -> canvas nodeId
+
+    // Create nodes from optimization results
+    let xOffset = 0;
+    for (const optNode of results.nodes) {
+      const building = getBuildingById(optNode.buildingId);
+      const recipe = getRecipeById(optNode.recipeId);
+      if (!building || !recipe) continue;
+
+      const nodeId = `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      nodeIdMap.set(optNode.recipeId, nodeId);
+
+      const requiredInputRates: Record<string, number> = {};
+      const requiredOutputRates: Record<string, number> = {};
+      for (const input of recipe.inputs) {
+        requiredInputRates[input.itemId] = input.perMinute * (optNode.clockSpeed / 100);
+      }
+      for (const output of recipe.outputs) {
+        requiredOutputRates[output.itemId] = output.perMinute * (optNode.clockSpeed / 100);
+      }
+
+      const newNode: Node<FactoryNodeData> = {
+        id: nodeId,
+        type: 'factory',
+        position: { x: xOffset, y: 0 },
+        data: {
+          type: 'building',
+          buildingId: building.id,
+          recipeId: recipe.id,
+          label: `${building.name} x${optNode.count}`,
+          icon: building.icon,
+          clockSpeed: optNode.clockSpeed,
+          inputRates: {},
+          outputRates: {},
+          requiredInputRates,
+          requiredOutputRates,
+          status: 'idle',
+        },
+      };
+      newNodes.push(newNode);
+      xOffset += 300;
+    }
+
+    // Create resource nodes for raw inputs and connect them
+    for (const conn of results.connections) {
+      const targetNodeId = nodeIdMap.get(conn.toNode);
+      if (!targetNodeId) continue;
+
+      const sourceNodeId = nodeIdMap.get(conn.fromNode);
+
+      if (sourceNodeId) {
+        // Internal connection between buildings
+        const edgeId = `opt-edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        newEdges.push({
+          id: edgeId,
+          source: sourceNodeId,
+          target: targetNodeId,
+          type: 'conveyor',
+          data: {
+            beltId: conn.beltId,
+            actualRate: conn.rate,
+            maxRate: 60,
+            utilization: 0,
+            isBottleneck: false,
+          },
+        });
+      } else {
+        // Raw resource - create a resource node
+        const item = getItemById(conn.itemId);
+        if (!item) continue;
+
+        const resNodeId = `opt-res-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const resNode: Node<FactoryNodeData> = {
+          id: resNodeId,
+          type: 'factory',
+          position: { x: xOffset, y: -200 },
+          data: {
+            type: 'resource',
+            itemId: item.id,
+            label: item.name,
+            icon: item.icon,
+            clockSpeed: 100,
+            inputRates: {},
+            outputRates: { [item.id]: conn.rate },
+            requiredInputRates: {},
+            requiredOutputRates: { [item.id]: conn.rate },
+            status: 'running',
+          },
+        };
+        newNodes.push(resNode);
+        xOffset += 300;
+
+        const edgeId = `opt-edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        newEdges.push({
+          id: edgeId,
+          source: resNodeId,
+          target: targetNodeId,
+          type: 'conveyor',
+          data: {
+            beltId: conn.beltId,
+            actualRate: conn.rate,
+            maxRate: 60,
+            utilization: 0,
+            isBottleneck: false,
+          },
+        });
+      }
+    }
+
+    // Add all new nodes and edges to the canvas
+    set({
+      nodes: [...get().nodes, ...newNodes],
+      edges: [...get().edges, ...newEdges],
+    });
+
+    // Run simulation
+    setTimeout(() => get().simulateFlows(), 0);
   },
 
   // ─── Simulation ───────────────────────────────────────────────────

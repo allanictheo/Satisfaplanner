@@ -21,6 +21,75 @@ import type { FactoryNodeData } from '../../types';
 const nodeTypes = { factory: FactoryNode };
 const edgeTypes = { conveyor: ConveyorEdge };
 
+function createNodeFromDragData(
+  item: { type: string; id: string },
+  position: { x: number; y: number },
+): Node<FactoryNodeData> | null {
+  const id = `node-${Date.now()}`;
+
+  if (item.type === 'building') {
+    const building = getBuildingById(item.id);
+    if (!building) return null;
+
+    const buildingRecipes = getRecipesForBuilding(building.id);
+    const firstRecipe = buildingRecipes[0];
+
+    const requiredInputRates: Record<string, number> = {};
+    const requiredOutputRates: Record<string, number> = {};
+
+    if (firstRecipe) {
+      for (const input of firstRecipe.inputs) {
+        requiredInputRates[input.itemId] = input.perMinute;
+      }
+      for (const output of firstRecipe.outputs) {
+        requiredOutputRates[output.itemId] = output.perMinute;
+      }
+    }
+
+    return {
+      id,
+      type: 'factory',
+      position,
+      data: {
+        type: 'building',
+        buildingId: building.id,
+        recipeId: firstRecipe?.id,
+        label: building.name,
+        icon: building.icon,
+        clockSpeed: 100,
+        inputRates: {},
+        outputRates: {},
+        requiredInputRates,
+        requiredOutputRates,
+        status: 'idle',
+      },
+    };
+  } else if (item.type === 'item') {
+    const itemData = getItemById(item.id);
+    if (!itemData) return null;
+
+    return {
+      id,
+      type: 'factory',
+      position,
+      data: {
+        type: 'resource',
+        itemId: itemData.id,
+        label: itemData.name,
+        icon: itemData.icon,
+        clockSpeed: 100,
+        inputRates: {},
+        outputRates: { [itemData.id]: 60 },
+        requiredInputRates: {},
+        requiredOutputRates: { [itemData.id]: 60 },
+        status: 'running',
+      },
+    };
+  }
+
+  return null;
+}
+
 export function Canvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -33,7 +102,6 @@ export function Canvas() {
   const addNode = useStore((s) => s.addNode);
   const setSelectedNode = useStore((s) => s.setSelectedNode);
   const setSelectedEdge = useStore((s) => s.setSelectedEdge);
-  const draggedItem = useStore((s) => s.draggedItem);
   const setDraggedItem = useStore((s) => s.setDraggedItem);
   const simulateFlows = useStore((s) => s.simulateFlows);
 
@@ -46,85 +114,30 @@ export function Canvas() {
     (event: React.DragEvent) => {
       event.preventDefault();
 
-      if (!draggedItem) return;
+      // Read drag data from the event itself, not from store state
+      const jsonData = event.dataTransfer.getData('application/json');
+      if (!jsonData) return;
+
+      let parsed: { type: string; id: string };
+      try {
+        parsed = JSON.parse(jsonData);
+      } catch {
+        return;
+      }
 
       const position = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
 
-      const id = `node-${Date.now()}`;
+      const node = createNodeFromDragData(parsed, position);
+      if (!node) return;
 
-      let nodeData: FactoryNodeData;
-
-      if (draggedItem.type === 'building') {
-        const building = getBuildingById(draggedItem.id);
-        if (!building) return;
-
-        const buildingRecipes = getRecipesForBuilding(building.id);
-        const firstRecipe = buildingRecipes[0];
-
-        const inputRates: Record<string, number> = {};
-        const outputRates: Record<string, number> = {};
-        const requiredInputRates: Record<string, number> = {};
-        const requiredOutputRates: Record<string, number> = {};
-
-        if (firstRecipe) {
-          for (const input of firstRecipe.inputs) {
-            requiredInputRates[input.itemId] = input.perMinute;
-          }
-          for (const output of firstRecipe.outputs) {
-            requiredOutputRates[output.itemId] = output.perMinute;
-          }
-        }
-
-        nodeData = {
-          type: 'building',
-          buildingId: building.id,
-          recipeId: firstRecipe?.id,
-          label: building.name,
-          icon: building.icon,
-          clockSpeed: 100,
-          inputRates,
-          outputRates,
-          requiredInputRates,
-          requiredOutputRates,
-          status: 'idle',
-        };
-      } else if (draggedItem.type === 'item') {
-        const item = getItemById(draggedItem.id);
-        if (!item) return;
-
-        nodeData = {
-          type: 'resource',
-          itemId: item.id,
-          label: item.name,
-          icon: item.icon,
-          clockSpeed: 100,
-          inputRates: {},
-          outputRates: { [item.id]: 60 },
-          requiredInputRates: {},
-          requiredOutputRates: { [item.id]: 60 },
-          status: 'running',
-        };
-      } else {
-        return;
-      }
-
-      const newNode: Node<FactoryNodeData> = {
-        id,
-        type: 'factory',
-        position,
-        data: nodeData,
-      };
-
-      addNode(newNode);
+      addNode(node);
       setDraggedItem(null);
-
-      // Run simulation after adding the node
       setTimeout(() => simulateFlows(), 0);
     },
-    [draggedItem, screenToFlowPosition, addNode, setDraggedItem, simulateFlows],
+    [screenToFlowPosition, addNode, setDraggedItem, simulateFlows],
   );
 
   const onPaneClick = useCallback(() => {

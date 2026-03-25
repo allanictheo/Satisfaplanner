@@ -246,19 +246,12 @@ export function OptimizePanel() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const {
-    optimization,
-    setOptimizationTarget,
-    runOptimization,
-    clearOptimization,
-    nodes,
-  } = useStore((s) => ({
-    optimization: s.optimization,
-    setOptimizationTarget: s.setOptimizationTarget,
-    runOptimization: s.runOptimization,
-    clearOptimization: s.clearOptimization,
-    nodes: s.nodes,
-  }));
+  const optimization = useStore((s) => s.optimization);
+  const setOptimizationTarget = useStore((s) => s.setOptimizationTarget);
+  const runOptimization = useStore((s) => s.runOptimization);
+  const clearOptimization = useStore((s) => s.clearOptimization);
+  const applyOptimizationToCanvas = useStore((s) => s.applyOptimizationToCanvas);
+  const nodes = useStore((s) => s.nodes);
 
   const { targetItemId, targetRate, results, isOptimizing } = optimization;
 
@@ -537,7 +530,8 @@ export function OptimizePanel() {
                 </button>
                 <button
                   onClick={() => {
-                    /* Apply to canvas -- placeholder for wiring to addNode */
+                    applyOptimizationToCanvas();
+                    setIsExpanded(false);
                   }}
                   className="flex-[2] flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-sf-green/80 to-sf-green text-white hover:shadow-lg hover:shadow-sf-green/20 transition-all"
                 >
