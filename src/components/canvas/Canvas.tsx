@@ -160,15 +160,18 @@ export function Canvas() {
   );
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full">
+    <div
+      ref={reactFlowWrapper}
+      className="w-full h-full"
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
         onPaneClick={onPaneClick}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
